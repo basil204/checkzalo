@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { randomUUID } from 'node:crypto';
 import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, extname, join } from 'node:path';
+import { basename, extname, join, resolve } from 'node:path';
 import formidable from 'formidable';
 import { exportResults, fingerprint, loadTaxTable, processRows, readInputs, normalizePhone, isPhone, type Result } from './core.js';
 import { ZaloSession } from './zalo.js';
@@ -18,6 +18,59 @@ type Job = {
   folder: string;
   results: Result[];
 };
+
+export type CachedZaloContact = {
+  phone: string;
+  originalPhone?: string;
+  name: string;
+  zaloId?: string;
+  gender?: string;
+  dob?: string;
+  bio?: string;
+  avatar?: string;
+  companyName?: string;
+  contactName?: string;
+  savedAt: number;
+};
+
+const CACHE_FILE = resolve(process.cwd(), '.zalo_contacts_cache.json');
+let contactsCache = new Map<string, CachedZaloContact>();
+
+async function loadContactsCache() {
+  try {
+    const raw = await readFile(CACHE_FILE, 'utf8');
+    const items = JSON.parse(raw) as CachedZaloContact[];
+    if (Array.isArray(items)) {
+      contactsCache = new Map(items.map(c => [c.phone, c]));
+    }
+  } catch {}
+}
+
+async function saveContactsCache() {
+  try {
+    const list = Array.from(contactsCache.values());
+    await writeFile(CACHE_FILE, JSON.stringify(list, null, 2), 'utf8');
+  } catch {}
+}
+
+function addContactToCache(result: Result) {
+  if (!result.hasPublicInfo && result.status !== 'found') return;
+  const phone = result.phone || result.value;
+  if (!phone) return;
+  contactsCache.set(phone, {
+    phone,
+    originalPhone: result.originalPhone || phone,
+    name: result.name || '',
+    zaloId: result.zaloId || '',
+    gender: result.gender || '',
+    dob: result.dob || '',
+    bio: result.bio || '',
+    avatar: result.avatar || '',
+    companyName: result.companyName || '',
+    contactName: result.contactName || '',
+    savedAt: Date.now()
+  });
+}
 
 const jobs = new Map<string, Job>();
 const zalo = new ZaloSession();
@@ -134,6 +187,9 @@ async function start(req: IncomingMessage, res: ServerResponse) {
             job.total = total;
             if (latestResult) {
               job.results.push(latestResult);
+              if (latestResult.hasPublicInfo || latestResult.status === 'found') {
+                addContactToCache(latestResult);
+              }
             }
           }
         });
@@ -148,6 +204,7 @@ async function start(req: IncomingMessage, res: ServerResponse) {
         const xlsxFoundPath = join(folder, 'danh-sach-co-zalo.xlsx');
         await exportResults(xlsxFoundPath, foundResults);
 
+        await saveContactsCache();
         job.state = 'done';
       } catch (error) {
         job.state = 'error';
@@ -169,7 +226,7 @@ const server = createServer(async (req, res) => {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store',
         'X-Content-Type-Options': 'nosniff',
-        'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+        'Content-Security-Policy': "default-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https: http:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
       });
       res.end(await readFile(new URL('../public/index.html', import.meta.url)));
     } else if (req.method === 'GET' && url.pathname === '/app.js') {
@@ -221,10 +278,36 @@ const server = createServer(async (req, res) => {
 
       try {
         const info = await zalo.check(norm);
+        const hasPub = Boolean(info && (info.hasPublicInfo || info.name || info.uid));
+        if (info && hasPub) {
+          const singleResult: Result = {
+            line: 1,
+            value: norm,
+            phone: norm,
+            originalPhone: rawPhone,
+            type: 'phone',
+            hasPublicInfo: true,
+            hasPublicInfoText: 'Có thông tin public',
+            name: info.name || '',
+            zaloId: info.uid || '',
+            gender: info.gender || '',
+            dob: info.dob || '',
+            bio: info.bio || '',
+            avatar: info.avatar || '',
+            mst: '',
+            status: 'found',
+            statusText: 'Có thông tin public',
+            source: 'zalo',
+            error: ''
+          };
+          addContactToCache(singleResult);
+          void saveContactsCache();
+        }
+
         respond(res, 200, {
           originalPhone: rawPhone,
           phone: norm,
-          hasPublicInfo: Boolean(info && (info.hasPublicInfo || info.name || info.uid)),
+          hasPublicInfo: hasPub,
           user: info ?? null
         });
       } catch (err) {
@@ -248,7 +331,7 @@ const server = createServer(async (req, res) => {
         privateCount: privateResults.length,
         errorCount: errorResults.length,
         foundPhones: foundResults.map(r => r.phone || r.value),
-        preview: job.results.slice(-50)
+        preview: foundResults.slice(-50) // CHỈ HIỆN NHỮNG SỐ CHECK ĐƯỢC ZALO
       });
     } else if (req.method === 'GET' && /^\/api\/jobs\/[a-f0-9-]{36}\/download$/.test(url.pathname)) {
       const job = jobs.get(url.pathname.split('/')[3]);
@@ -278,6 +361,58 @@ const server = createServer(async (req, res) => {
         'X-Content-Type-Options': 'nosniff'
       });
       res.end(await readFile(filePath));
+    } else if (req.method === 'GET' && url.pathname === '/api/cache') {
+      const list = Array.from(contactsCache.values()).reverse();
+      respond(res, 200, { total: list.length, contacts: list });
+    } else if (req.method === 'POST' && url.pathname === '/api/cache/clear') {
+      if (!isAllowedOrigin(req)) return fail(res, 403, 'Yêu cầu không cùng nguồn.');
+      contactsCache.clear();
+      await saveContactsCache();
+      respond(res, 200, { total: 0, contacts: [] });
+    } else if (req.method === 'GET' && url.pathname === '/api/cache/download') {
+      const format = url.searchParams.get('format') || 'xlsx';
+      const contacts = Array.from(contactsCache.values());
+      if (format === 'txt') {
+        const text = contacts.map(c => c.phone).join('\r\n');
+        res.writeHead(200, {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="danh-ba-zalo-da-luu.txt"',
+          'Cache-Control': 'no-store'
+        });
+        res.end(text);
+      } else {
+        const tempPath = join(tmpdir(), `zalo-cache-${Date.now()}.xlsx`);
+        const results: Result[] = contacts.map((c, i) => ({
+          line: i + 1,
+          value: c.phone,
+          phone: c.phone,
+          originalPhone: c.originalPhone || c.phone,
+          type: 'phone',
+          hasPublicInfo: true,
+          hasPublicInfoText: 'Có thông tin public',
+          name: c.name,
+          zaloId: c.zaloId,
+          gender: c.gender,
+          dob: c.dob,
+          bio: c.bio,
+          avatar: c.avatar,
+          mst: '',
+          status: 'found',
+          statusText: 'Đã lưu trong cache',
+          source: 'cache',
+          error: '',
+          companyName: c.companyName,
+          contactName: c.contactName
+        }));
+        await exportResults(tempPath, results);
+        res.writeHead(200, {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': 'attachment; filename="danh-ba-zalo-da-luu.xlsx"',
+          'Cache-Control': 'no-store'
+        });
+        res.end(await readFile(tempPath));
+        void rm(tempPath, { force: true });
+      }
     } else {
       fail(res, 404, 'Không tìm thấy trang.');
     }
@@ -287,6 +422,7 @@ const server = createServer(async (req, res) => {
   }
 });
 
+void loadContactsCache();
 void zalo.tryResumeSession();
 server.listen(port, host, () => console.log(`Giao diện: http://${host}:${port} (chỉ truy cập từ máy này)`));
 

@@ -7,3 +7,4 @@ node_modules/
 dist/
 .zalo_session.json
 cloudflared.exe
+.zalo_contacts_cache.json
