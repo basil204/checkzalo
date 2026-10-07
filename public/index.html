@@ -28,11 +28,19 @@
         </div>
       </div>
 
-      <!-- Quick Zalo Status Pill -->
-      <button type="button" class="status-badge offline" id="nav-zalo-status" title="Bấm để xem mã QR">
-        <span class="status-dot"></span>
-        <span id="nav-zalo-text">Zalo: Chưa kết nối</span>
-      </button>
+      <div class="nav-actions">
+        <!-- Quick Server API Config Pill -->
+        <button type="button" class="status-badge" id="btn-server-config" title="Cài đặt kết nối máy chủ Backend">
+          <span class="status-dot" id="server-status-dot" style="background-color: #3b82f6;"></span>
+          <span id="server-status-text">Server: Sẵn sàng</span>
+        </button>
+
+        <!-- Quick Zalo Status Pill -->
+        <button type="button" class="status-badge offline" id="nav-zalo-status" title="Bấm để xem mã QR">
+          <span class="status-dot"></span>
+          <span id="nav-zalo-text">Zalo: Chưa kết nối</span>
+        </button>
+      </div>
     </div>
 
     <!-- Navigation Tabs (Mobile & Desktop friendly) -->
@@ -349,6 +357,46 @@
     </section>
 
   </main>
+
+  <!-- Modal Cấu hình Server URL (Hỗ trợ Cloudflare Pages) -->
+  <div class="modal-overlay" id="modal-server-config" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ Kết nối Máy chủ Backend</h3>
+        <button type="button" class="modal-close" id="btn-close-server-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Khi mở trên <strong>Cloudflare Pages</strong>, bạn cần kết nối đến máy chủ Node.js đang chạy trên máy (thông qua link Cloudflare Tunnel <code>https://...trycloudflare.com</code>).
+        </p>
+        <div class="form-group" style="margin-top: 12px;">
+          <label for="input-backend-url" style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--text-primary);">
+            Đường link Backend Server (Tunnel URL):
+          </label>
+          <input type="url" id="input-backend-url" class="search-input" style="width:100%;" placeholder="https://abc-xyz.trycloudflare.com">
+        </div>
+        <div id="server-test-result" style="margin-top:10px; font-size:13px;" hidden></div>
+        <div style="margin-top: 12px; font-size:12px; color:var(--text-muted); line-height: 1.5; background:rgba(255,255,255,0.03); padding:10px; border-radius:8px; border:1px solid var(--border-subtle);">
+          💡 <strong>Cách lấy link:</strong> Nhấp đúp vào tệp <code>start-web.bat</code> trên máy tính, cửa sổ sẽ in ra một đường link HTTPS dạng <code>https://...trycloudflare.com</code>. Sao chép và dán vào đây!
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:space-between; gap:10px; margin-top:16px;">
+        <button type="button" class="btn-clear" id="btn-reset-backend" style="padding:8px 14px;">Mặc định (Local)</button>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-copy-mini" id="btn-test-backend" style="padding:8px 14px;">Kiểm tra kết nối</button>
+          <button type="button" class="btn-primary" id="btn-save-backend" style="padding:8px 18px;">Lưu & Áp dụng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner thông báo kết nối nếu trên Vercel / Cloudflare -->
+  <div id="pages-warning-banner" class="pages-banner" hidden>
+    <div class="pages-banner-content">
+      <span>🌐 Đang chạy trên <strong>Cloud (Vercel / Cloudflare)</strong>. Chưa kết nối với máy chủ Backend?</span>
+      <button type="button" id="btn-banner-connect" class="btn-banner">⚙️ Nhập link Backend</button>
+    </div>
+  </div>
 
   <!-- Mobile Toast Notification -->
   <div id="toast" class="toast-popup" hidden></div>

@@ -5,6 +5,24 @@
 
 // Global Cache Key in LocalStorage
 const LOCAL_CACHE_KEY = 'zalo_local_contacts_cache';
+const BACKEND_URL_KEY = 'zalo_backend_url';
+
+function getBackendUrl() {
+  const saved = (localStorage.getItem(BACKEND_URL_KEY) || '').trim();
+  if (saved) return saved.replace(/\/+$/, '');
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') {
+    return '';
+  }
+  return '';
+}
+
+function apiUrl(path) {
+  const base = getBackendUrl();
+  const cleanPath = path.startsWith('/') ? path : '/' + path;
+  if (!base) return cleanPath;
+  return `${base}${cleanPath}`;
+}
 
 // Helper: Normalize phone (chuyển 84 / +84 thành đầu 0)
 function normalizePhoneClient(raw) {
@@ -109,7 +127,7 @@ function updateCacheBadge() {
 // Sync local cache with server cache on startup
 async function syncServerCache() {
   try {
-    const res = await fetch('/api/cache');
+    const res = await fetch(apiUrl('/api/cache'));
     if (!res.ok) return;
     const data = await res.json();
     if (data.contacts && Array.isArray(data.contacts)) {
@@ -273,7 +291,7 @@ function initBulkView() {
     progressTitle.textContent = 'Đang tra cứu Zalo...';
 
     try {
-      const response = await fetch('/api/jobs', {
+      const response = await fetch(apiUrl('/api/jobs'), {
         method: 'POST',
         body: formData
       });
@@ -295,7 +313,7 @@ function initBulkView() {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/jobs/${jobId}`);
+        const res = await fetch(apiUrl(`/api/jobs/${jobId}`));
         if (!res.ok) return;
         const job = await res.json();
 
@@ -346,8 +364,8 @@ function initBulkView() {
 
           if (job.state === 'done') {
             progressTitle.textContent = 'Hoàn tất tra cứu!';
-            linkDownloadTxt.href = `/api/jobs/${jobId}/download?filter=found&type=txt`;
-            linkDownloadXlsx.href = `/api/jobs/${jobId}/download?filter=found&type=xlsx`;
+            linkDownloadTxt.href = apiUrl(`/api/jobs/${jobId}/download?filter=found&type=txt`);
+            linkDownloadXlsx.href = apiUrl(`/api/jobs/${jobId}/download?filter=found&type=xlsx`);
             bulkDownloadActions.hidden = false;
             showToast(`Hoàn tất! Tìm thấy ${found} tài khoản Zalo.`);
           } else {
@@ -412,7 +430,7 @@ function initSingleView() {
     singleBtn.disabled = true;
 
     try {
-      const res = await fetch('/api/check-single', {
+      const res = await fetch(apiUrl('/api/check-single'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: raw })
@@ -510,7 +528,7 @@ function initCacheView() {
     if (!confirm('Bạn có chắc muốn xóa toàn bộ danh bạ Zalo đã lưu trong máy không?')) return;
     localStorage.removeItem(LOCAL_CACHE_KEY);
     try {
-      await fetch('/api/cache/clear', { method: 'POST' });
+      await fetch(apiUrl('/api/cache/clear'), { method: 'POST' });
     } catch {
       // Ignore
     }
@@ -618,7 +636,7 @@ function initZaloAuth() {
 
   async function checkZaloStatus() {
     try {
-      const res = await fetch('/api/zalo', { cache: 'no-store' });
+      const res = await fetch(apiUrl('/api/zalo'), { cache: 'no-store' });
       if (!res.ok) return;
       const status = await res.json();
       const phase = status.phase;
@@ -694,7 +712,7 @@ function initZaloAuth() {
     btnCreateQr.disabled = true;
     btnCreateQr.textContent = 'Đang khởi tạo mã QR...';
     try {
-      await fetch('/api/zalo/connect', { method: 'POST' });
+      await fetch(apiUrl('/api/zalo/connect'), { method: 'POST' });
       await checkZaloStatus();
     } catch (e) {
       alert('Lỗi: ' + e.message);
@@ -705,7 +723,7 @@ function initZaloAuth() {
   btnDisconnect.addEventListener('click', async () => {
     if (!confirm('Bạn có chắc chắn muốn ngắt kết nối Zalo không?')) return;
     try {
-      await fetch('/api/zalo/disconnect', { method: 'POST' });
+      await fetch(apiUrl('/api/zalo/disconnect'), { method: 'POST' });
       await checkZaloStatus();
       showToast('Đã ngắt kết nối Zalo.');
     } catch (e) {
@@ -718,9 +736,132 @@ function initZaloAuth() {
   setInterval(checkZaloStatus, 2500);
 }
 
+// ----------------- SERVER CONFIG MODAL -----------------
+function initServerConfig() {
+  const btnServerConfig = document.querySelector('#btn-server-config');
+  const serverStatusDot = document.querySelector('#server-status-dot');
+  const serverStatusText = document.querySelector('#server-status-text');
+  const modal = document.querySelector('#modal-server-config');
+  const btnClose = document.querySelector('#btn-close-server-modal');
+  const inputUrl = document.querySelector('#input-backend-url');
+  const btnSave = document.querySelector('#btn-save-backend');
+  const btnReset = document.querySelector('#btn-reset-backend');
+  const btnTest = document.querySelector('#btn-test-backend');
+  const testResult = document.querySelector('#server-test-result');
+  const pagesBanner = document.querySelector('#pages-warning-banner');
+  const btnBannerConnect = document.querySelector('#btn-banner-connect');
+
+  const isPagesHost = window.location.hostname.endsWith('.pages.dev') || (!['localhost', '127.0.0.1'].includes(window.location.hostname));
+
+  function updateServerBadge() {
+    const current = getBackendUrl();
+    if (current) {
+      try {
+        const u = new URL(current);
+        serverStatusText.textContent = `Server: ${u.hostname}`;
+      } catch {
+        serverStatusText.textContent = 'Server: Đã kết nối';
+      }
+      serverStatusDot.style.backgroundColor = '#10b981';
+      if (pagesBanner) pagesBanner.hidden = true;
+    } else if (isPagesHost) {
+      serverStatusText.textContent = 'Server: Chưa nối ⚠️';
+      serverStatusDot.style.backgroundColor = '#f59e0b';
+      if (pagesBanner) pagesBanner.hidden = false;
+    } else {
+      serverStatusText.textContent = 'Server: Localhost';
+      serverStatusDot.style.backgroundColor = '#3b82f6';
+      if (pagesBanner) pagesBanner.hidden = true;
+    }
+  }
+
+  function openModal() {
+    inputUrl.value = localStorage.getItem(BACKEND_URL_KEY) || '';
+    testResult.hidden = true;
+    testResult.textContent = '';
+    modal.hidden = false;
+  }
+
+  function closeModal() {
+    modal.hidden = true;
+  }
+
+  if (btnServerConfig) btnServerConfig.addEventListener('click', openModal);
+  if (btnBannerConnect) btnBannerConnect.addEventListener('click', openModal);
+  if (btnClose) btnClose.addEventListener('click', closeModal);
+
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+  }
+
+  if (btnTest) {
+    btnTest.addEventListener('click', async () => {
+      let val = inputUrl.value.trim().replace(/\/+$/, '');
+      if (!val && isPagesHost) {
+        testResult.hidden = false;
+        testResult.style.color = '#ef4444';
+        testResult.textContent = 'Vui lòng nhập đường link Tunnel của máy chủ.';
+        return;
+      }
+      testResult.hidden = false;
+      testResult.style.color = '#f59e0b';
+      testResult.textContent = 'Đang kiểm tra kết nối tới máy chủ...';
+
+      const target = val ? `${val}/api/zalo` : '/api/zalo';
+      try {
+        const res = await fetch(target, { cache: 'no-store' });
+        if (res.ok) {
+          testResult.style.color = '#10b981';
+          testResult.textContent = '✅ Kết nối thành công! Đã phát hiện máy chủ Zalo hoạt động.';
+        } else {
+          testResult.style.color = '#ef4444';
+          testResult.textContent = `❌ Máy chủ phản hồi mã lỗi ${res.status}.`;
+        }
+      } catch (err) {
+        testResult.style.color = '#ef4444';
+        testResult.textContent = '❌ Không thể kết nối. Hãy kiểm tra xem lệnh start-web.bat trên máy tính đã được bật chưa.';
+      }
+    });
+  }
+
+  if (btnSave) {
+    btnSave.addEventListener('click', () => {
+      let val = inputUrl.value.trim().replace(/\/+$/, '');
+      if (val) {
+        if (!val.startsWith('http://') && !val.startsWith('https://')) {
+          val = 'https://' + val;
+        }
+        localStorage.setItem(BACKEND_URL_KEY, val);
+        showToast('Đã lưu cấu hình máy chủ Backend!');
+      } else {
+        localStorage.removeItem(BACKEND_URL_KEY);
+        showToast('Đã đặt lại về máy chủ cục bộ.');
+      }
+      closeModal();
+      updateServerBadge();
+      syncServerCache();
+    });
+  }
+
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      localStorage.removeItem(BACKEND_URL_KEY);
+      inputUrl.value = '';
+      closeModal();
+      updateServerBadge();
+      showToast('Đã xóa cấu hình riêng. Dùng mặc định cùng nguồn.');
+    });
+  }
+
+  updateServerBadge();
+}
+
 // ----------------- APP INITIALIZATION -----------------
 window.addEventListener('DOMContentLoaded', () => {
   initTabs();
+  initServerConfig();
   initBulkView();
   initSingleView();
   initCacheView();

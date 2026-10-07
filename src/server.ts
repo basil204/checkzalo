@@ -74,7 +74,7 @@ function addContactToCache(result: Result) {
 
 const jobs = new Map<string, Job>();
 const zalo = new ZaloSession();
-const host = '127.0.0.1';
+const host = process.env.HOST ?? '0.0.0.0';
 const port = Number(process.env.PORT ?? '3000');
 if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('PORT không hợp lệ');
 
@@ -82,7 +82,10 @@ function respond(res: ServerResponse, code: number, data: object) {
   res.writeHead(code, {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
-    'X-Content-Type-Options': 'nosniff'
+    'X-Content-Type-Options': 'nosniff',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With'
   });
   res.end(JSON.stringify(data));
 }
@@ -97,8 +100,8 @@ function isAllowedOrigin(req: IncomingMessage): boolean {
   const hostHeader = req.headers.host;
   if (origin === `http://${host}:${port}` || origin === `http://localhost:${port}`) return true;
   if (hostHeader && (origin === `http://${hostHeader}` || origin === `https://${hostHeader}`)) return true;
-  if (origin.endsWith('.trycloudflare.com') || origin.endsWith('.cloudflare.com')) return true;
-  return false;
+  if (origin.endsWith('.trycloudflare.com') || origin.endsWith('.cloudflare.com') || origin.endsWith('.pages.dev')) return true;
+  return true;
 }
 
 function one(fields: Record<string, string[] | undefined>, name: string): string | undefined {
@@ -219,6 +222,16 @@ async function start(req: IncomingMessage, res: ServerResponse) {
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://${host}:${port}`);
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+      'Access-Control-Max-Age': '86400'
+    });
+    return res.end();
+  }
 
   try {
     if (req.method === 'GET' && url.pathname === '/') {
