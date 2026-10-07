@@ -6,3 +6,4 @@ node_modules/
 !examples/*.xlsx
 dist/
 .zalo_session.json
+cloudflared.exe

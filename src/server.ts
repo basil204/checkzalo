@@ -38,12 +38,22 @@ function fail(res: ServerResponse, code: number, message: string) {
   respond(res, code, { error: message });
 }
 
+function isAllowedOrigin(req: IncomingMessage): boolean {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  const hostHeader = req.headers.host;
+  if (origin === `http://${host}:${port}` || origin === `http://localhost:${port}`) return true;
+  if (hostHeader && (origin === `http://${hostHeader}` || origin === `https://${hostHeader}`)) return true;
+  if (origin.endsWith('.trycloudflare.com') || origin.endsWith('.cloudflare.com')) return true;
+  return false;
+}
+
 function one(fields: Record<string, string[] | undefined>, name: string): string | undefined {
   return fields[name]?.[0];
 }
 
 async function start(req: IncomingMessage, res: ServerResponse) {
-  if (req.headers.origin !== `http://${host}:${port}`) return fail(res, 403, 'Yêu cầu không cùng nguồn với giao diện.');
+  if (!isAllowedOrigin(req)) return fail(res, 403, 'Yêu cầu không cùng nguồn với giao diện.');
   const folder = await mkdtemp(join(tmpdir(), 'zalo-checker-ui-'));
 
   try {
@@ -179,15 +189,15 @@ const server = createServer(async (req, res) => {
     } else if (req.method === 'GET' && url.pathname === '/api/zalo') {
       respond(res, 200, zalo.status);
     } else if (req.method === 'POST' && url.pathname === '/api/zalo/connect') {
-      if (req.headers.origin !== `http://${host}:${port}`) return fail(res, 403, 'Yêu cầu không cùng nguồn với giao diện.');
+      if (!isAllowedOrigin(req)) return fail(res, 403, 'Yêu cầu không cùng nguồn với giao diện.');
       zalo.connect();
       respond(res, 202, zalo.status);
     } else if (req.method === 'POST' && url.pathname === '/api/zalo/disconnect') {
-      if (req.headers.origin !== `http://${host}:${port}`) return fail(res, 403, 'Yêu cầu không cùng nguồn với giao diện.');
+      if (!isAllowedOrigin(req)) return fail(res, 403, 'Yêu cầu không cùng nguồn với giao diện.');
       zalo.disconnect();
       respond(res, 200, zalo.status);
     } else if (req.method === 'POST' && url.pathname === '/api/check-single') {
-      if (req.headers.origin !== `http://${host}:${port}`) return fail(res, 403, 'Yêu cầu không cùng nguồn với giao diện.');
+      if (!isAllowedOrigin(req)) return fail(res, 403, 'Yêu cầu không cùng nguồn với giao diện.');
       if (zalo.status.phase !== 'ready') return fail(res, 400, 'Chưa đăng nhập Zalo. Hãy quét mã QR để kết nối trước khi tra cứu.');
 
       let body = '';
@@ -277,6 +287,7 @@ const server = createServer(async (req, res) => {
   }
 });
 
+void zalo.tryResumeSession();
 server.listen(port, host, () => console.log(`Giao diện: http://${host}:${port} (chỉ truy cập từ máy này)`));
 
 async function close() {
