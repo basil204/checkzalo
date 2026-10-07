@@ -294,28 +294,54 @@
       <div class="panel-card">
         <div class="panel-header">
           <div>
-            <h2>Kết nối tài khoản Zalo</h2>
-            <p>Quét mã QR bằng ứng dụng Zalo trên điện thoại. Phiên đăng nhập được tự động lưu lại vào máy.</p>
+            <h2>Tài khoản Zalo kết nối</h2>
+            <p>Phiên đăng nhập được tự động lưu vào cache máy. Khi mở lại trang web bạn không cần phải quét lại mã QR.</p>
           </div>
         </div>
 
         <div class="auth-box">
+          <!-- ĐÃ ĐĂNG NHẬP THÀNH CÔNG (ẨN HOÀN TOÀN KHỐI TẠO QR KHI ĐÃ ĐĂNG NHẬP) -->
           <div id="zalo-connected-card" class="connected-card" hidden>
-            <div class="check-circle">✓</div>
-            <div>
-              <strong>Đã kết nối tài khoản Zalo thành công!</strong>
-              <p id="auth-account-name">Sẵn sàng tra cứu</p>
+            <div class="auth-profile-header">
+              <div class="auth-avatar-wrap">
+                <img id="auth-user-avatar" src="" alt="Avatar" class="auth-avatar" hidden>
+                <div id="auth-avatar-fallback" class="auth-avatar-fallback">Z</div>
+              </div>
+              <div class="auth-profile-meta">
+                <div class="auth-name-row">
+                  <h3 id="auth-account-name">Đang tải tên tài khoản...</h3>
+                  <span class="badge-found">✓ Đang hoạt động</span>
+                </div>
+                <p class="auth-uid-text">UID: <span id="auth-account-id" class="font-mono">—</span></p>
+                <span class="cache-saved-pill">💾 Đã lưu session vào cache máy</span>
+              </div>
             </div>
-            <button type="button" class="btn-danger-outline" id="btn-disconnect">Ngắt kết nối</button>
+
+            <div class="auth-status-desc">
+              <p>Tài khoản Zalo của bạn đang hoạt động bình thường và sẵn sàng tra cứu số điện thoại. Phiên làm việc đã được lưu trữ an toàn trong máy, bạn không cần phải quét lại mã QR.</p>
+            </div>
+
+            <div class="auth-action-row">
+              <button type="button" class="btn-danger-outline" id="btn-disconnect">🚪 Đăng xuất / Đổi tài khoản khác</button>
+            </div>
           </div>
 
+          <!-- CHƯA ĐĂNG NHẬP (CHỈ HIỂN THỊ KHI CHƯA KẾT NỐI) -->
           <div id="zalo-disconnected-card" class="disconnected-card">
+            <div class="qr-notice-box">
+              <div class="notice-icon">📱</div>
+              <div>
+                <strong>Chưa có phiên đăng nhập Zalo</strong>
+                <p>Nhấn nút bên dưới để tạo mã QR. Sau khi quét và xác nhận trên điện thoại, hệ thống sẽ tự động lưu lại vào máy.</p>
+              </div>
+            </div>
+
             <button id="btn-create-qr" type="button" class="btn-primary">Tạo mã QR đăng nhập</button>
             <p id="qr-status-msg" class="status-msg">Chưa đăng nhập</p>
 
             <div id="qr-image-wrapper" class="qr-wrapper" hidden>
               <img id="qr-img" alt="Mã QR Zalo" class="qr-code-img">
-              <p class="qr-guide">Mở Zalo trên điện thoại ➔ Bấm nút Quét mã QR ở góc trên ➔ Xác nhận đăng nhập</p>
+              <p class="qr-guide">Mở Zalo trên điện thoại ➔ Bấm biểu tượng <strong>Quét mã QR</strong> ở góc trên ➔ Chọn <strong>Xác nhận đăng nhập</strong></p>
             </div>
           </div>
         </div>

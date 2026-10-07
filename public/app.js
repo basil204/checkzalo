@@ -611,6 +611,9 @@ function initZaloAuth() {
   const qrWrapper = document.querySelector('#qr-image-wrapper');
   const qrImg = document.querySelector('#qr-img');
   const authAccountName = document.querySelector('#auth-account-name');
+  const authAccountId = document.querySelector('#auth-account-id');
+  const authUserAvatar = document.querySelector('#auth-user-avatar');
+  const authAvatarFallback = document.querySelector('#auth-avatar-fallback');
   const btnDisconnect = document.querySelector('#btn-disconnect');
 
   async function checkZaloStatus() {
@@ -622,11 +625,36 @@ function initZaloAuth() {
 
       if (phase === 'ready') {
         const name = status.profile?.name || 'Đã kết nối';
+        const uid = status.profile?.id || '—';
+        const avatar = status.profile?.avatar;
+
         navPill.className = 'status-badge ready';
         navText.textContent = `Zalo: ${name}`;
+
+        // Hiển thị thẻ đã đăng nhập, ẩn hoàn toàn thẻ tạo QR
         connectedCard.hidden = false;
         disconnectedCard.hidden = true;
-        authAccountName.textContent = status.profile?.name ? `Tài khoản: ${status.profile.name}` : 'Sẵn sàng tra cứu số điện thoại';
+        qrWrapper.hidden = true;
+
+        if (authAccountName) authAccountName.textContent = name;
+        if (authAccountId) authAccountId.textContent = uid;
+
+        if (authUserAvatar && authAvatarFallback) {
+          if (avatar && avatar !== 'https://s160-ava-talk.zadn.vn/default') {
+            authUserAvatar.src = avatar;
+            authUserAvatar.hidden = false;
+            authAvatarFallback.hidden = true;
+            authUserAvatar.onerror = () => {
+              authUserAvatar.hidden = true;
+              authAvatarFallback.hidden = false;
+              authAvatarFallback.textContent = name.charAt(0).toUpperCase();
+            };
+          } else {
+            authUserAvatar.hidden = true;
+            authAvatarFallback.hidden = false;
+            authAvatarFallback.textContent = name.charAt(0).toUpperCase();
+          }
+        }
       } else if (phase === 'waiting') {
         navPill.className = 'status-badge waiting';
         navText.textContent = 'Zalo: Quét mã QR...';
@@ -651,7 +679,7 @@ function initZaloAuth() {
         navText.textContent = 'Zalo: Chưa kết nối';
         connectedCard.hidden = true;
         disconnectedCard.hidden = false;
-        qrStatusMsg.textContent = status.error || 'Chưa kết nối tài khoản Zalo.';
+        qrStatusMsg.textContent = status.error || 'Chưa có phiên đăng nhập Zalo nào trên máy.';
         qrWrapper.hidden = true;
         btnCreateQr.disabled = false;
         btnCreateQr.textContent = 'Tạo mã QR đăng nhập';
