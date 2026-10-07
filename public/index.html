@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Check Zalo Public Info · Đối chiếu dữ liệu hàng loạt</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="background-glow"></div>
+  <main class="shell">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-badge">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <path d="M8 10h.01"></path>
+            <path d="M12 10h.01"></path>
+            <path d="M16 10h.01"></path>
+          </svg>
+        </div>
+        <div>
+          <span class="eyebrow">CÔNG CỤ NỘI BỘ · CHẠY TRÊN MÁY CỤC BỘ</span>
+          <h1>Check Zalo Public Info</h1>
+          <p class="subtitle">Kiểm tra thông tin Zalo public & Đối chiếu dữ liệu hàng loạt · Tự động chuyển đổi đầu số 84 sang 0</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <div id="zalo-status-pill" class="status-pill offline">
+          <span class="indicator-dot"></span>
+          <span id="header-zalo-text">Zalo: Chưa kết nối</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Highlights Banner -->
+    <div class="features-bar">
+      <div class="feature-item">
+        <span class="f-icon">🔄</span>
+        <div><strong>Tự động đổi 84 ➔ 0</strong><p>Nhận 849xxx, +849xxx tự chuyển thành 09xxx</p></div>
+      </div>
+      <div class="feature-item">
+        <span class="f-icon">🛡️</span>
+        <div><strong>Check thông tin public</strong><p>Phát hiện có/không có Zalo, avatar, tên, UID</p></div>
+      </div>
+      <div class="feature-item">
+        <span class="f-icon">⚡</span>
+        <div><strong>Tra nhanh & Hàng loạt</strong><p>Hỗ trợ Excel, TXT, CSV hoặc dán trực tiếp</p></div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <!-- Left Column: Single Check & Connection -->
+      <div class="left-col">
+        <!-- 01. Single Quick Lookup -->
+        <section class="card" id="single-lookup-card">
+          <div class="card-head">
+            <span class="step-num">⚡</span>
+            <div>
+              <h2>Kiểm tra nhanh 1 số điện thoại</h2>
+              <p>Thử ngay 1 số điện thoại bất kỳ (tự động đổi 84 sang 0)</p>
+            </div>
+          </div>
+          <form id="single-form" class="single-form">
+            <div class="input-group">
+              <input id="single-phone" type="text" placeholder="Ví dụ: 84904461106 hoặc 0904461106" required autocomplete="off">
+              <button id="single-btn" type="submit">
+                <span>Kiểm tra</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+            <div class="quick-examples">
+              <span>Thử nhanh:</span>
+              <button type="button" class="chip" data-phone="84904461106">84904461106</button>
+              <button type="button" class="chip" data-phone="84903282946">84903282946</button>
+              <button type="button" class="chip" data-phone="0912345678">0912345678</button>
+            </div>
+          </form>
+
+          <!-- Single Result Box -->
+          <div id="single-result-box" class="single-result-box" hidden>
+            <div id="single-loading" class="spinner-box" hidden>
+              <div class="spinner"></div>
+              <span>Đang tra cứu từ Zalo...</span>
+            </div>
+            <div id="single-content" class="single-content">
+              <div class="user-profile-header">
+                <div class="avatar-wrapper">
+                  <img id="res-avatar" src="" alt="Avatar Zalo" class="res-avatar">
+                  <div id="res-avatar-fallback" class="res-avatar-fallback">Z</div>
+                </div>
+                <div class="user-meta">
+                  <div class="name-badge-row">
+                    <h3 id="res-name">Tên người dùng</h3>
+                    <span id="res-public-badge" class="badge">Có thông tin public</span>
+                  </div>
+                  <div class="phone-transform">
+                    <span class="phone-norm" id="res-phone">0904461106</span>
+                    <span class="phone-orig" id="res-orig">(Số gốc: 84904461106)</span>
+                  </div>
+                </div>
+              </div>
+              <div class="user-details-grid">
+                <div class="detail-row">
+                  <span class="d-label">Zalo UID:</span>
+                  <span class="d-val code-val" id="res-uid">—</span>
+                </div>
+                <div class="detail-row">
+                  <span class="d-label">Giới tính:</span>
+                  <span class="d-val" id="res-gender">—</span>
+                </div>
+                <div class="detail-row">
+                  <span class="d-label">Ngày sinh:</span>
+                  <span class="d-val" id="res-dob">—</span>
+                </div>
+                <div class="detail-row full-width">
+                  <span class="d-label">Tiểu sử / Bio:</span>
+                  <span class="d-val" id="res-bio">—</span>
+                </div>
+              </div>
+            </div>
+            <div id="single-error" class="single-error" hidden></div>
+          </div>
+        </section>
+
+        <!-- 02. Zalo Connection Box -->
+        <section class="card" id="zalo-auth-card">
+          <div class="card-head">
+            <span class="step-num">QR</span>
+            <div>
+              <h2>Kết nối tài khoản Zalo</h2>
+              <p>Quét mã QR bằng ứng dụng Zalo trên điện thoại</p>
+            </div>
+          </div>
+
+          <div class="zalo-box">
+            <div class="zalo-action-row">
+              <button id="connect" type="button" class="btn secondary">Tạo mã QR đăng nhập</button>
+              <button id="disconnect" type="button" class="btn outline" hidden>Ngắt kết nối</button>
+            </div>
+
+            <div id="zalo-user-connected" class="connected-banner" hidden>
+              <span class="check-icon">✓</span>
+              <div>
+                <strong>Đã kết nối thành công!</strong>
+                <p id="connected-account-name">Tài khoản Zalo sẵn sàng tra cứu</p>
+              </div>
+            </div>
+
+            <p id="zalo-state" class="zalo-state-text" aria-live="polite">Chưa đăng nhập</p>
+
+            <div class="qr-container" id="qr-container" hidden>
+              <img id="qr" alt="Mã QR đăng nhập Zalo" class="qr-image">
+              <p class="qr-hint">Mở Zalo trên điện thoại ➔ Chọn biểu tượng quét QR ➔ Xác nhận đăng nhập</p>
+            </div>
+
+            <small class="zalo-security-note">
+              🔒 <strong>Bảo mật:</strong> Phiên đăng nhập chỉ lưu trong bộ nhớ máy này, không lưu mật khẩu hay cookie ra ổ cứng.
+            </small>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column: Bulk Check -->
+      <div class="right-col">
+        <section class="card" id="bulk-card">
+          <div class="card-head">
+            <span class="step-num">02</span>
+            <div>
+              <h2>Kiểm tra danh sách hàng loạt</h2>
+              <p>Tải tệp Excel/TXT/CSV hoặc dán danh sách số điện thoại</p>
+            </div>
+          </div>
+
+          <!-- Input Mode Tabs -->
+          <div class="tab-buttons">
+            <button type="button" class="tab-btn active" id="tab-file-btn">📁 Tải tệp lên (.xlsx, .txt, .csv)</button>
+            <button type="button" class="tab-btn" id="tab-text-btn">✍️ Dán danh sách số</button>
+          </div>
+
+          <form id="form" class="bulk-form">
+            <!-- Tab 1: File Upload -->
+            <div id="pane-file" class="tab-pane active">
+              <div class="drop-zone" id="drop-zone">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <div class="drop-text">
+                  <strong>Chọn hoặc kéo thả tệp vào đây</strong>
+                  <span>Hỗ trợ tệp <code>.xlsx</code>, <code>.txt</code> hoặc <code>.csv</code></span>
+                </div>
+                <input id="file-input" name="input" type="file" accept=".txt,.xlsx,.csv">
+                <div id="selected-file-name" class="selected-file-badge" hidden></div>
+              </div>
+
+              <!-- Optional Tax Table (for backward compatibility) -->
+              <details class="advanced-details">
+                <summary>Bảng đối chiếu MST phụ trợ (Tùy chọn)</summary>
+                <div class="optional-file-box">
+                  <label class="small-upload">
+                    <span>Bảng MST doanh nghiệp (.csv hoặc .xlsx):</span>
+                    <input name="table" type="file" accept=".csv,.xlsx">
+                  </label>
+                </div>
+              </details>
+            </div>
+
+            <!-- Tab 2: Textarea Paste -->
+            <div id="pane-text" class="tab-pane" hidden>
+              <div class="textarea-box">
+                <label for="phone-text">Dán danh sách số điện thoại (mỗi dòng một số):</label>
+                <textarea id="phone-text" name="phoneText" rows="6" placeholder="84904461106&#10;+84903282946&#10;0912345678&#10;84988776655"></textarea>
+                <div class="textarea-helper">
+                  <span>Mọi số có đầu 84 hoặc +84 sẽ tự động được chuyển đổi sang đầu 0</span>
+                  <span id="line-counter">0 số</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-box">
+              <div class="setting-item">
+                <label for="format-select">Định dạng xuất file</label>
+                <select id="format-select" name="format">
+                  <option value="xlsx" selected>Excel (.xlsx) - Đầy đủ cột & Avatar</option>
+                  <option value="csv">CSV (.csv) - Chuẩn UTF-8</option>
+                </select>
+              </div>
+              <div class="setting-item">
+                <label for="delay-input">Khoảng cách mỗi lượt tra (ms)</label>
+                <input id="delay-input" type="number" name="delayMs" min="1000" max="60000" step="100" value="1500" required>
+                <small>Khuyến nghị ≥ 1500ms để bảo vệ tài khoản Zalo</small>
+              </div>
+              <input type="hidden" name="concurrency" value="1">
+              <input type="hidden" name="useZalo" value="on">
+            </div>
+
+            <button id="run" type="submit" class="btn primary btn-large">
+              <span>Bắt đầu kiểm tra hàng loạt</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+          </form>
+
+          <!-- Progress & Live Results Section -->
+          <section id="progress" class="progress-panel" hidden aria-live="polite">
+            <div class="progress-header">
+              <div>
+                <h3 id="state">Đang khởi tạo tác vụ...</h3>
+                <p id="progress-desc">Vui lòng giữ nguyên cửa sổ trình duyệt trong khi công cụ đang chạy</p>
+              </div>
+              <div class="progress-stats">
+                <span id="count" class="count-pill">0 / 0 dòng</span>
+              </div>
+            </div>
+
+            <div class="meter-track">
+              <div id="bar" class="meter-bar" style="width: 0%;"></div>
+            </div>
+
+            <!-- Stat Summary Cards -->
+            <div class="metrics-grid">
+              <div class="metric-card total">
+                <span class="m-val" id="metric-total">0</span>
+                <span class="m-lbl">Tổng số dòng</span>
+              </div>
+              <div class="metric-card public">
+                <span class="m-val" id="metric-public">0</span>
+                <span class="m-lbl">Có Zalo public</span>
+              </div>
+              <div class="metric-card private">
+                <span class="m-val" id="metric-private">0</span>
+                <span class="m-lbl">Không có / Riêng tư</span>
+              </div>
+              <div class="metric-card error">
+                <span class="m-val" id="metric-error">0</span>
+                <span class="m-lbl">Lỗi / Không hợp lệ</span>
+              </div>
+            </div>
+
+            <!-- Options -->
+            <div class="filter-option-box">
+              <label>
+                <input type="checkbox" id="only-zalo-check" checked>
+                <span>Chỉ xuất danh sách các số check được Zalo (Lọc bỏ số không có Zalo)</span>
+              </label>
+            </div>
+
+            <!-- Download Button & Found Phones -->
+            <div id="download-box" class="download-box" hidden>
+              <div class="download-actions-grid">
+                <a id="download-zalo-txt" class="btn success" href="#">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span>Tải TXT (Chỉ SĐT có Zalo)</span>
+                </a>
+                <a id="download-zalo-xlsx" class="btn primary" href="#">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                  <span>Tải Excel (Chỉ số có Zalo)</span>
+                </a>
+                <a id="download" class="btn secondary" href="#">
+                  <span>Tải toàn bộ kết quả</span>
+                </a>
+              </div>
+
+              <div class="found-phones-box" id="found-phones-container" hidden>
+                <h5>
+                  <span>Danh sách SĐT tìm thấy Zalo (<span id="found-phones-count">0</span> số):</span>
+                  <button type="button" class="chip" id="copy-found-phones-btn">📋 Sao chép danh sách</button>
+                </h5>
+                <textarea id="found-phones-textarea" class="found-phones-textarea" rows="6" readonly placeholder="Danh sách SĐT check được Zalo sẽ hiển thị tại đây..."></textarea>
+              </div>
+            </div>
+
+            <!-- Live Preview Table -->
+            <div class="preview-table-box">
+              <div class="table-header-row">
+                <h4>Kết quả xem trước thời gian thực</h4>
+                <small id="preview-note">Cập nhật tự động khi đang xử lý</small>
+              </div>
+              <div class="table-scroll">
+                <table class="live-table" id="live-table">
+                  <thead>
+                    <tr>
+                      <th>Dòng</th>
+                      <th>Avatar</th>
+                      <th>SĐT (đầu 0)</th>
+                      <th>SĐT gốc</th>
+                      <th>Tên Zalo</th>
+                      <th>Thông tin public</th>
+                      <th>Giới tính</th>
+                      <th>Zalo UID</th>
+                      <th>Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-body">
+                    <tr class="empty-row"><td colspan="9">Đang chuẩn bị dữ liệu...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </section>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <p>Kiểm tra thông tin Zalo public & Đối chiếu dữ liệu · Dữ liệu xử lý an toàn tại máy chủ cục bộ <code>127.0.0.1</code>.</p>
+        <p class="footer-sub">Chỉ sử dụng cho danh bạ và dữ liệu khách hàng bạn có quyền xử lý. Tuân thủ chính sách bảo mật thông tin.</p>
+      </div>
+    </footer>
+  </main>
+</body>
+</html>

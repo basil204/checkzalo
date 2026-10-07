@@ -1,0 +1,8 @@
+node_modules/
+*.checkpoint.jsonl
+*.csv
+*.xlsx
+!examples/*.csv
+!examples/*.xlsx
+dist/
+.zalo_session.json
