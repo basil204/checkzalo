@@ -197,8 +197,9 @@ async function start(req: IncomingMessage, res: ServerResponse) {
           }
         });
         job.results = results;
-        job.output = join(folder, `ket-qua-zalo.${format}`);
-        await exportResults(job.output, results);
+        const xlsxAllPath = join(folder, 'ket-qua-toan-bo-zalo.xlsx');
+        await exportResults(xlsxAllPath, results);
+        job.output = xlsxAllPath;
 
         const foundResults = results.filter(r => r.hasPublicInfo || r.status === 'found');
         const txtPath = join(folder, 'chi-sdt-co-zalo.txt');
@@ -384,8 +385,8 @@ const server = createServer(async (req, res) => {
       const fileType = url.searchParams.get('type');
 
       let filePath = job.output;
-      let contentType = job.format === 'csv' ? 'text/csv; charset=utf-8' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      let fileName = basename(job.output);
+      let contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      let fileName = 'ket-qua-toan-bo-zalo.xlsx';
 
       if (filter === 'found' && fileType === 'txt') {
         filePath = join(job.folder, 'chi-sdt-co-zalo.txt');
@@ -401,7 +402,8 @@ const server = createServer(async (req, res) => {
         'Content-Type': contentType,
         'Content-Disposition': `attachment; filename="${fileName}"`,
         'Cache-Control': 'no-store',
-        'X-Content-Type-Options': 'nosniff'
+        'X-Content-Type-Options': 'nosniff',
+        'Access-Control-Allow-Origin': '*'
       });
       res.end(await readFile(filePath));
     } else if (req.method === 'GET' && url.pathname === '/api/cache') {
