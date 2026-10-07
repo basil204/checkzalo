@@ -321,11 +321,41 @@ const server = createServer(async (req, res) => {
           originalPhone: rawPhone,
           phone: norm,
           hasPublicInfo: hasPub,
-          user: info ?? null
+          name: info?.name || '',
+          user: info ?? null,
+          statusText: hasPub ? 'Có thông tin public' : 'Tài khoản không tồn tại hoặc đã ẩn khỏi tìm kiếm'
         });
       } catch (err) {
         fail(res, 500, err instanceof Error ? err.message : 'Lỗi khi tra cứu Zalo.');
       }
+    } else if (req.method === 'GET' && url.pathname === '/api/export-single') {
+      const phone = url.searchParams.get('phone') || '';
+      const name = url.searchParams.get('name') || '';
+      const hasPub = url.searchParams.get('found') === '1' && Boolean(name);
+      const tempPath = join(tmpdir(), `zalo-${phone}-${Date.now()}.xlsx`);
+      const singleRes: Result[] = [{
+        line: 1,
+        value: phone,
+        phone,
+        type: 'phone',
+        hasPublicInfo: hasPub,
+        hasPublicInfoText: hasPub ? 'Có thông tin public' : 'Không có thông tin public',
+        name: hasPub ? name : '',
+        status: hasPub ? 'found' : 'not_found',
+        statusText: hasPub ? 'Có thông tin public' : 'Tài khoản không tồn tại hoặc đã ẩn khỏi tìm kiếm',
+        source: 'zalo',
+        error: '',
+        mst: ''
+      }];
+      await exportResults(tempPath, singleRes);
+      res.writeHead(200, {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="zalo-${phone}.xlsx"`,
+        'Cache-Control': 'no-store',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(await readFile(tempPath));
+      void rm(tempPath, { force: true });
     } else if (req.method === 'POST' && url.pathname === '/api/jobs') {
       await start(req, res);
     } else if (req.method === 'GET' && /^\/api\/jobs\/[a-f0-9-]{36}$/.test(url.pathname)) {
@@ -344,7 +374,7 @@ const server = createServer(async (req, res) => {
         privateCount: privateResults.length,
         errorCount: errorResults.length,
         foundPhones: foundResults.map(r => r.phone || r.value),
-        preview: foundResults.slice(-50) // CHỈ HIỆN NHỮNG SỐ CHECK ĐƯỢC ZALO
+        preview: job.results.slice(-50) // Hiển thị cả số có và không có Zalo
       });
     } else if (req.method === 'GET' && /^\/api\/jobs\/[a-f0-9-]{36}\/download$/.test(url.pathname)) {
       const job = jobs.get(url.pathname.split('/')[3]);

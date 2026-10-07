@@ -433,7 +433,7 @@ export async function processRows(inputs: Input[], lookup: Lookup | undefined, o
               result.hasPublicInfo = false;
               result.hasPublicInfoText = 'Không có thông tin public';
               result.status = 'not_found';
-              result.statusText = 'Không tìm thấy / Riêng tư';
+              result.statusText = 'Tài khoản không tồn tại hoặc đã ẩn khỏi tìm kiếm';
             }
           } else {
             result = {
@@ -482,10 +482,16 @@ export async function exportResults(path: string, results: Result[]): Promise<vo
   const ext = extname(path).toLowerCase();
 
   if (ext === '.csv') {
+    const csvColumns = ['STT', 'SĐT', 'Tên zalo'];
     const stream = createWriteStream(path, { encoding: 'utf8' });
-    stream.write('\uFEFF' + columns.join(',') + '\r\n');
-    for (const result of results) {
-      if (!stream.write(columns.map(k => csv(result[k])).join(',') + '\r\n')) {
+    stream.write('\uFEFF' + csvColumns.join(',') + '\r\n');
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const stt = i + 1;
+      const sdt = result.phone || result.value || '';
+      const hasPub = result.hasPublicInfo || result.status === 'found';
+      const tenZalo = (hasPub && result.name) ? result.name : 'Tài khoản không tồn tại hoặc đã ẩn khỏi tìm kiếm';
+      if (!stream.write([csv(stt), csv(sdt), csv(tenZalo)].join(',') + '\r\n')) {
         await once(stream, 'drain');
       }
     }
@@ -493,30 +499,23 @@ export async function exportResults(path: string, results: Result[]): Promise<vo
     await once(stream, 'finish');
   } else if (ext === '.xlsx') {
     const wb = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: path });
-    const sheet = wb.addWorksheet('KiemTraZalo');
+    const sheet = wb.addWorksheet('DanhSachZalo');
     sheet.columns = [
-      { header: 'STT', key: 'line', width: 8 },
-      { header: 'Số điện thoại (đầu 0)', key: 'phone', width: 22 },
-      { header: 'Số gốc (đầu 84)', key: 'originalPhone', width: 20 },
-      { header: 'Thông tin Zalo public', key: 'hasPublicInfoText', width: 24 },
-      { header: 'Tên Zalo', key: 'name', width: 26 },
-      { header: 'Zalo UID', key: 'zaloId', width: 22 },
-      { header: 'Giới tính', key: 'gender', width: 14 },
-      { header: 'Ngày sinh', key: 'dob', width: 16 },
-      { header: 'Tiểu sử (Bio)', key: 'bio', width: 30 },
-      { header: 'Ảnh đại diện (Avatar)', key: 'avatar', width: 35 },
-      { header: 'Trạng thái', key: 'statusText', width: 24 },
-      { header: 'Tên khách hàng', key: 'companyName', width: 24 },
-      { header: 'Tên người liên hệ', key: 'contactName', width: 22 },
-      { header: 'Ghi chú / Lỗi', key: 'error', width: 28 },
+      { header: 'STT', key: 'stt', width: 8 },
+      { header: 'SĐT', key: 'phone', width: 22 },
+      { header: 'Tên zalo', key: 'name', width: 45 },
     ];
-    for (const result of results) {
-      const rowData = {
-        ...result,
-        phone: result.phone ? String(result.phone) : '',
-        originalPhone: result.originalPhone ? String(result.originalPhone) : ''
-      };
-      sheet.addRow(rowData).commit();
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const stt = i + 1;
+      const sdt = result.phone || result.value || '';
+      const hasPub = result.hasPublicInfo || result.status === 'found';
+      const tenZalo = (hasPub && result.name) ? result.name : 'Tài khoản không tồn tại hoặc đã ẩn khỏi tìm kiếm';
+      sheet.addRow({
+        stt,
+        phone: String(sdt),
+        name: tenZalo
+      }).commit();
     }
     sheet.commit();
     await wb.commit();

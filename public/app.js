@@ -331,29 +331,33 @@ function initBulkView() {
         const pct = total > 0 ? Math.round((done / total) * 100) : 0;
         progressBarFill.style.width = `${pct}%`;
 
-        // Render preview - CHỈ CÁC SỐ CÓ ZALO
+        const liveNotFoundTag = document.querySelector('#live-notfound-tag');
+        const linkDownloadXlsxFound = document.querySelector('#link-download-xlsx-found');
+
+        // Render preview - TẤT CẢ CÁC SỐ (CÓ VÀ KHÔNG CÓ ZALO)
         if (Array.isArray(job.preview) && job.preview.length > 0) {
-          const onlyFound = job.preview.filter(r => r.hasPublicInfo || r.status === 'found');
+          const ph = bulkContactsContainer.querySelector('.empty-placeholder');
+          if (ph) ph.remove();
 
-          // Xóa placeholder nếu có số tìm thấy
-          if (onlyFound.length > 0) {
-            const ph = bulkContactsContainer.querySelector('.empty-placeholder');
-            if (ph) ph.remove();
-          }
-
-          onlyFound.forEach(item => {
+          job.preview.forEach(item => {
             const p = normalizePhoneClient(item.phone || item.value);
             if (p && !renderedPhones.has(p)) {
               renderedPhones.add(p);
-              liveFoundPhones.push(p);
+              if (item.hasPublicInfo || item.status === 'found') {
+                liveFoundPhones.push(p);
+              }
               const card = createContactCard(item);
               bulkContactsContainer.prepend(card);
             }
           });
 
-          // Lưu vào local cache
-          addContactsToCache(onlyFound);
-          liveFoundTag.textContent = `${renderedPhones.size} tài khoản`;
+          // Lưu các số có Zalo vào cache
+          const onlyFound = job.preview.filter(r => r.hasPublicInfo || r.status === 'found');
+          if (onlyFound.length > 0) {
+            addContactsToCache(onlyFound);
+          }
+          liveFoundTag.textContent = `${found} có Zalo`;
+          if (liveNotFoundTag) liveNotFoundTag.textContent = `${skipped} không có / ẩn`;
         }
 
         // Job hoàn thành
@@ -365,9 +369,12 @@ function initBulkView() {
           if (job.state === 'done') {
             progressTitle.textContent = 'Hoàn tất tra cứu!';
             linkDownloadTxt.href = apiUrl(`/api/jobs/${jobId}/download?filter=found&type=txt`);
-            linkDownloadXlsx.href = apiUrl(`/api/jobs/${jobId}/download?filter=found&type=xlsx`);
+            linkDownloadXlsx.href = apiUrl(`/api/jobs/${jobId}/download?type=xlsx`);
+            if (linkDownloadXlsxFound) {
+              linkDownloadXlsxFound.href = apiUrl(`/api/jobs/${jobId}/download?filter=found&type=xlsx`);
+            }
             bulkDownloadActions.hidden = false;
-            showToast(`Hoàn tất! Tìm thấy ${found} tài khoản Zalo.`);
+            showToast(`Hoàn tất! ${found} có Zalo, ${skipped} không tồn tại hoặc đã ẩn.`);
           } else {
             progressTitle.textContent = 'Xử lý gặp lỗi: ' + (job.error || '');
           }
@@ -410,6 +417,12 @@ function initSingleView() {
   const singleChatLink = document.querySelector('#single-chat-link');
   const singleCopyBtn = document.querySelector('#single-copy-btn');
 
+  const singleNotFoundCard = document.querySelector('#single-not-found-card');
+  const singleNotFoundPhone = document.querySelector('#single-not-found-phone');
+  const singleNotFoundExcel = document.querySelector('#single-not-found-excel');
+  const singleNotFoundCopy = document.querySelector('#single-not-found-copy');
+  const singleDownloadExcel = document.querySelector('#single-download-excel');
+
   // Quick chips
   document.querySelectorAll('.quick-chips .chip').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -426,6 +439,7 @@ function initSingleView() {
     singleResultBox.hidden = false;
     singleLoading.hidden = false;
     singleContent.hidden = true;
+    if (singleNotFoundCard) singleNotFoundCard.hidden = true;
     singleError.hidden = true;
     singleBtn.disabled = true;
 
@@ -441,8 +455,20 @@ function initSingleView() {
       singleLoading.hidden = true;
 
       if (!data.hasPublicInfo || !data.user) {
-        singleError.hidden = false;
-        singleError.textContent = `Số ${data.phone || raw} không tìm thấy tài khoản Zalo hoặc chủ tài khoản để chế độ riêng tư.`;
+        // HIỂN THỊ THẺ: TÀI KHOẢN KHÔNG TỒN TẠI HOẶC ĐÃ ẨN KHỎI TÌM KIẾM
+        if (singleNotFoundCard) {
+          singleNotFoundCard.hidden = false;
+          if (singleNotFoundPhone) singleNotFoundPhone.textContent = data.phone || raw;
+          if (singleNotFoundExcel) {
+            singleNotFoundExcel.href = apiUrl('/api/export-single?phone=' + encodeURIComponent(data.phone || raw) + '&found=0');
+          }
+          if (singleNotFoundCopy) {
+            singleNotFoundCopy.onclick = () => copyToClipboard(data.phone || raw, `Đã chép số ${data.phone || raw}`);
+          }
+        } else {
+          singleError.hidden = false;
+          singleError.textContent = 'Tài khoản không tồn tại hoặc đã ẩn khỏi tìm kiếm';
+        }
         return;
       }
 
@@ -451,6 +477,7 @@ function initSingleView() {
       const normalized = data.phone;
 
       singleContent.hidden = false;
+      if (singleNotFoundCard) singleNotFoundCard.hidden = true;
       singleName.textContent = user.name || 'Người dùng Zalo';
       singlePhoneVal.textContent = normalized;
       singleOrigVal.textContent = data.originalPhone !== normalized ? `(Gốc: ${data.originalPhone})` : '';
@@ -459,6 +486,11 @@ function initSingleView() {
       singleGender.textContent = user.gender || '—';
       singleDob.textContent = user.dob || '—';
       singleBio.textContent = user.bio || 'Không có tiểu sử';
+
+      // Nút xuất file Excel dòng này
+      if (singleDownloadExcel) {
+        singleDownloadExcel.href = apiUrl('/api/export-single?phone=' + encodeURIComponent(normalized) + '&name=' + encodeURIComponent(user.name || '') + '&found=1');
+      }
 
       // Avatar
       if (user.avatar) {
@@ -509,6 +541,11 @@ function initCacheView() {
   const cacheSearch = document.querySelector('#cache-search');
   const btnCopyAllCache = document.querySelector('#btn-copy-all-cache');
   const btnClearCache = document.querySelector('#btn-clear-cache');
+  const btnDownloadCacheTxt = document.querySelector('#btn-download-cache-txt');
+  const btnDownloadCacheXlsx = document.querySelector('#btn-download-cache-xlsx');
+
+  if (btnDownloadCacheTxt) btnDownloadCacheTxt.href = apiUrl('/api/cache/download?format=txt');
+  if (btnDownloadCacheXlsx) btnDownloadCacheXlsx.href = apiUrl('/api/cache/download?format=xlsx');
 
   cacheSearch.addEventListener('input', () => {
     renderCacheView(cacheSearch.value.trim().toLowerCase());
@@ -566,43 +603,53 @@ function renderCacheView(query = '') {
   });
 }
 
-// Helper: Render Contact Card DOM Element (Chỉ cho tài khoản có Zalo)
+// Helper: Render Contact Card DOM Element (Hỗ trợ cả có Zalo và không có / ẩn)
 function createContactCard(item) {
   const card = document.createElement('div');
   card.className = 'contact-card';
 
   const phone = normalizePhoneClient(item.phone || item.value || '');
   const orig = item.originalPhone && item.originalPhone !== phone ? item.originalPhone : '';
-  const name = item.name || 'Người dùng Zalo';
-  const avatar = item.avatar || '';
-  const initial = (name || 'Z').charAt(0).toUpperCase();
+  const isFound = Boolean(item.hasPublicInfo || item.status === 'found');
+  const name = isFound ? (item.name || 'Người dùng Zalo') : 'Tài khoản không tồn tại hoặc đã ẩn khỏi tìm kiếm';
+  const avatar = isFound ? (item.avatar || '') : '';
+  const initial = isFound ? ((item.name || 'Z').charAt(0).toUpperCase()) : '✕';
+
+  if (!isFound) {
+    card.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+    card.style.background = 'rgba(239, 68, 68, 0.03)';
+  }
 
   const detailsArr = [];
-  if (item.gender) detailsArr.push(item.gender);
-  if (item.dob) detailsArr.push(item.dob);
-  if (item.zaloId) detailsArr.push(`UID: ${item.zaloId}`);
+  if (isFound) {
+    if (item.gender) detailsArr.push(item.gender);
+    if (item.dob) detailsArr.push(item.dob);
+    if (item.zaloId) detailsArr.push(`UID: ${item.zaloId}`);
+  } else {
+    detailsArr.push('Chưa đăng ký Zalo hoặc đã tắt tìm kiếm');
+  }
   const extraInfo = detailsArr.join(' · ') || (item.bio ? item.bio : '');
 
   card.innerHTML = `
     <div class="contact-left">
-      ${avatar
+      ${isFound && avatar
         ? `<img class="contact-avatar" src="${avatar}" alt="Avatar" onerror="this.outerHTML='<div class=\\'avatar-fallback-mini\\'>${initial}</div>'">`
-        : `<div class="avatar-fallback-mini">${initial}</div>`
+        : `<div class="avatar-fallback-mini" style="${!isFound ? 'background:rgba(239,68,68,0.18); color:#f87171;' : ''}">${initial}</div>`
       }
       <div class="contact-meta">
         <div class="contact-name-row">
-          <span class="contact-name" title="${name}">${name}</span>
-          <span class="contact-badge-mini">ZALO PUBLIC</span>
+          <span class="contact-name" title="${name}" style="${!isFound ? 'color:#f87171; font-weight:600;' : ''}">${name}</span>
+          <span class="contact-badge-mini" style="${!isFound ? 'background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3);' : ''}">${isFound ? 'ZALO PUBLIC' : 'CHƯA CÓ / ẨN'}</span>
         </div>
         <div class="contact-phone-row">
           <span class="contact-phone">${phone}</span>
           ${orig ? `<span class="contact-orig-phone">(${orig})</span>` : ''}
         </div>
-        ${extraInfo ? `<div class="contact-extra-info">${extraInfo}</div>` : ''}
+        ${extraInfo ? `<div class="contact-extra-info" style="${!isFound ? 'color:var(--text-muted);' : ''}">${extraInfo}</div>` : ''}
       </div>
     </div>
     <div class="contact-actions">
-      <a href="https://zalo.me/${phone}" target="_blank" class="btn-icon-action" title="Nhắn tin Zalo (zalo.me)">💬</a>
+      ${isFound ? `<a href="https://zalo.me/${phone}" target="_blank" class="btn-icon-action" title="Nhắn tin Zalo (zalo.me)">💬</a>` : ''}
       <button type="button" class="btn-icon-action btn-copy-card" title="Sao chép số điện thoại">📋</button>
     </div>
   `;

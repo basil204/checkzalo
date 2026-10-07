@@ -171,19 +171,23 @@
 
         <!-- Export Buttons -->
         <div id="bulk-download-actions" class="download-bar" hidden>
+          <a class="btn-primary" id="link-download-xlsx" href="#">📊 Tải Excel (Tất cả: STT · SĐT · Tên Zalo)</a>
+          <a class="btn-outline" id="link-download-xlsx-found" href="#">📊 Tải Excel (Chỉ số có Zalo)</a>
           <button type="button" class="btn-outline" id="btn-copy-bulk-found">📋 Sao chép SĐT có Zalo</button>
-          <a class="btn-outline" id="link-download-txt" href="#">📥 Tải TXT</a>
-          <a class="btn-primary" id="link-download-xlsx" href="#">📊 Tải Excel (.xlsx)</a>
+          <a class="btn-outline" id="link-download-txt" href="#">📥 Tải TXT SĐT</a>
         </div>
 
-        <!-- Only Found Results List -->
+        <!-- Results List -->
         <div class="results-header">
-          <h4>Chỉ hiển thị các tài khoản Zalo lấy được thông tin:</h4>
-          <span class="badge-tag" id="live-found-tag">0 tài khoản</span>
+          <h4>Danh sách kết quả tra cứu:</h4>
+          <div style="display:flex; gap:8px;">
+            <span class="badge-tag" id="live-found-tag">0 có Zalo</span>
+            <span class="badge-tag" id="live-notfound-tag" style="background:rgba(239,68,68,0.12); color:#f87171; border:1px solid rgba(239,68,68,0.3);">0 không có / ẩn</span>
+          </div>
         </div>
 
         <div class="contacts-list" id="bulk-contacts-container">
-          <div class="empty-placeholder" id="bulk-empty-text">Chưa có kết quả nào. Hệ thống sẽ chỉ hiển thị các số có Zalo tại đây.</div>
+          <div class="empty-placeholder" id="bulk-empty-text">Chưa có kết quả nào. Hệ thống sẽ hiển thị các số tại đây (có thông tin hoặc báo không tồn tại / ẩn).</div>
         </div>
       </div>
     </section>
@@ -258,6 +262,32 @@
             <div class="profile-actions">
               <a id="single-chat-link" href="#" target="_blank" class="btn-outline full-width">💬 Mở chat Zalo (zalo.me)</a>
               <button type="button" id="single-copy-btn" class="btn-outline full-width">📋 Sao chép số điện thoại</button>
+              <a id="single-download-excel" href="#" target="_blank" class="btn-primary full-width" style="margin-top:4px;">📊 Xuất file Excel (STT · SĐT · Tên Zalo)</a>
+            </div>
+          </div>
+
+          <!-- Thẻ khi KHÔNG TỒN TẠI hoặc ẨN TÌM KIẾM -->
+          <div id="single-not-found-card" class="single-content-box" hidden>
+            <div class="profile-card" style="border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06);">
+              <div class="profile-avatar-wrap">
+                <div class="avatar-fallback" style="background: rgba(239,68,68,0.2); color: #f87171;">✕</div>
+              </div>
+              <div class="profile-info">
+                <div class="profile-name-row">
+                  <h3 id="single-not-found-title" style="color: #f87171; font-size: 15px;">Tài khoản không tồn tại hoặc đã ẩn khỏi tìm kiếm</h3>
+                  <span class="badge-tag" style="background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">Chưa có / Ẩn</span>
+                </div>
+                <div class="profile-phone-row">
+                  <strong class="phone-highlight" id="single-not-found-phone">—</strong>
+                </div>
+              </div>
+            </div>
+            <p style="margin: 12px 0 6px; font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+              Số điện thoại này hiện <strong>chưa đăng ký Zalo</strong> hoặc chủ tài khoản đã <strong>tắt tính năng tìm kiếm qua số điện thoại</strong> trong cài đặt riêng tư của Zalo.
+            </p>
+            <div class="profile-actions" style="margin-top: 12px;">
+              <a id="single-not-found-excel" href="#" target="_blank" class="btn-primary full-width">📊 Xuất file Excel dòng này (STT · SĐT · Tên Zalo)</a>
+              <button type="button" id="single-not-found-copy" class="btn-outline full-width">📋 Sao chép số điện thoại</button>
             </div>
           </div>
 
