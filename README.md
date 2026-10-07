@@ -8,31 +8,30 @@ Node.js 20+ và TypeScript. Tự động chuẩn hóa đầu số điện thoạ
 2. **Kiểm tra thông tin Zalo public:**
    - Trạng thái: Có thông tin public / Không có / Riêng tư / Không tồn tại.
    - Trích xuất: Tên Zalo, Zalo UID, Avatar, Giới tính, Ngày sinh, Tiểu sử.
-3. **Tra cứu nhanh 1 số:** Nhập số bất kỳ trên giao diện để xem ngay kết quả.
-4. **Tra cứu hàng loạt đa kênh:**
-   - Tải tệp lên (`.xlsx`, `.txt`, `.csv`).
-   - Hoặc dán trực tiếp danh sách số điện thoại vào ô văn bản.
-5. **Xuất kết quả linh hoạt theo yêu cầu:**
-   - **Tải TXT (Chỉ SĐT có Zalo):** File text mỗi dòng 1 số dạng 09xxx.
-   - **Tải Excel (Chỉ số có Zalo):** Bảng Excel chi tiết các số tìm thấy Zalo.
-   - **Sao chép 1 click:** Sao chép toàn bộ số điện thoại có Zalo vào clipboard.
-   - **Tải toàn bộ kết quả:** Đầy đủ trạng thái cho tất cả các dòng.
+3. **Giao diện thân thiện cho cả Điện thoại & Máy tính:**
+   - Giao diện dạng Tab mượt mà: [Tra hàng loạt], [Tra 1 số], [Đã lưu (Cache)], [Tài khoản Zalo].
+   - Thiết kế Contact Card trực quan, có avatar tròn, nút **💬 Nhắn tin Zalo** (`zalo.me/...`) và nút **📋 Sao chép SĐT**.
+   - **Chỉ hiển thị các số tìm thấy Zalo** (loại bỏ hoàn toàn các dòng không có / lỗi để tránh rối mắt).
+4. **Lưu trữ Cache máy:**
+   - Phiên đăng nhập Zalo lưu tự động (`.zalo_session.json`), không phải quét lại QR mỗi lần mở app.
+   - Danh bạ các số có Zalo được lưu vào bộ nhớ máy khách (LocalStorage) và máy chủ (`.zalo_contacts_cache.json`).
+   - Có tab riêng xem lại danh bạ đã lưu, tìm kiếm nhanh, xuất TXT / Excel và sao chép toàn bộ số.
+5. **Truy cập từ xa qua điện thoại (Cloudflare Tunnel):**
+   - Chạy file `start-web.bat` để vừa mở server nội bộ vừa tạo đường link bảo mật miễn phí truy cập từ xa trên điện thoại.
 
 ## Cài đặt và chạy
 
-### Giao diện web trên máy
+### Cách 1: Chạy nhanh bằng 1 click chuột (Khuyên dùng)
+Bấm đúp vào file **`start-web.bat`** trong thư mục dự án. Trình duyệt sẽ mở và cung cấp link truy cập:
+- Trên máy tính: `http://127.0.0.1:3000`
+- Trên điện thoại: Link Cloudflare Tunnel được hiển thị trong cửa sổ terminal.
+
+### Cách 2: Dòng lệnh thủ công
 
 ```sh
 npm install
 npm run ui
 ```
-
-Mở trình duyệt tại: **`http://127.0.0.1:3000`**
-
-1. Bấm **Tạo mã QR đăng nhập**, dùng app Zalo trên điện thoại quét mã và xác nhận.
-2. Thử nhanh 1 số tại ô **Kiểm tra nhanh 1 số điện thoại**.
-3. Để tra hàng loạt: chọn tab **Dán danh sách số** (hoặc Tải tệp lên), bấm **Bắt đầu kiểm tra hàng loạt**.
-4. Khi chạy xong, bấm **Tải TXT (Chỉ SĐT có Zalo)** hoặc **Sao chép danh sách** để lấy các số check được Zalo.
 
 ### Dòng lệnh
 
